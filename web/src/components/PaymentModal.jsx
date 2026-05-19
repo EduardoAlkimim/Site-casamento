@@ -23,7 +23,7 @@ function MsgBlock({ name, valor, gift }) {
   const [msgText, setMsgText] = useState('')
 
   const handleSend = async () => {
-    if (!msgText.trim()) return alert('Escreva uma mensagem!')
+    if (!msgText.trim()) return
     try {
       await api.post('/messages', {
         sender_name: name,
@@ -33,13 +33,19 @@ function MsgBlock({ name, valor, gift }) {
       })
       setMsgStep('sent')
     } catch {
-      alert('Erro ao enviar mensagem. Tente novamente.')
+      setMsgStep('error')
     }
   }
 
   if (msgStep === 'sent') return (
     <p style={{ marginTop:'1rem', color:'var(--rose)', fontSize:'.85rem', textAlign:'center' }}>
       💌 Mensagem enviada! Obrigado pelo carinho.
+    </p>
+  )
+
+  if (msgStep === 'error') return (
+    <p style={{ marginTop:'1rem', color:'#e05c5c', fontSize:'.85rem', textAlign:'center' }}>
+      Erro ao enviar. Tente novamente.
     </p>
   )
 
@@ -75,6 +81,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
   const [statusMsg, setStatusMsg]     = useState('')
   const [pixApproved, setPixApproved] = useState(false)
   const [emailError, setEmailError]   = useState('')
+  const [formError, setFormError]     = useState('')
   const pollingRef = useRef(null)
 
   const [name, setName]   = useState('')
@@ -97,6 +104,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
   }, [cardNumber, valor])
 
   const startPolling = (paymentId) => {
+    clearInterval(pollingRef.current)
     pollingRef.current = setInterval(async () => {
       try {
         const { data } = await api.get(`/payments/status/${paymentId}`)
@@ -105,7 +113,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
           clearInterval(pollingRef.current)
         }
       } catch {}
-    }, 3000)
+    }, 4000)
   }
 
   useEffect(() => {
@@ -113,7 +121,9 @@ export default function PaymentModal({ gift, amount, onClose }) {
   }, [])
 
   const handlePix = async () => {
-    if (!name || !email) return alert('Preencha nome e e-mail')
+    setFormError('')
+    if (!name.trim()) { setFormError('Preencha seu nome completo'); return }
+    if (!email.trim()) { setFormError('Preencha seu e-mail'); return }
     if (!EMAIL_REGEX.test(email)) { setEmailError('Digite um e-mail válido'); return }
     setEmailError('')
     setLoading(true)
@@ -130,15 +140,16 @@ export default function PaymentModal({ gift, amount, onClose }) {
       setStep('qr')
       startPolling(data.payment_id)
     } catch {
-      alert('Erro ao gerar PIX. Tente novamente.')
+      setFormError('Erro ao gerar PIX. Tente novamente.')
     } finally {
       setLoading(false)
     }
   }
 
   const handleCard = async () => {
-    if (!name || !email || !cardNumber || !expiry || !cvv || !cardName || !cpf) {
-      return alert('Preencha todos os campos do cartão')
+    setFormError('')
+    if (!name.trim() || !email.trim() || !cardNumber || !expiry || !cvv || !cardName || !cpf) {
+      setFormError('Preencha todos os campos'); return
     }
     if (!EMAIL_REGEX.test(email)) { setEmailError('Digite um e-mail válido'); return }
     setEmailError('')
@@ -171,7 +182,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
       }
     } catch (err) {
       console.error(err)
-      alert('Erro ao processar pagamento. Verifique os dados e tente novamente.')
+      setFormError('Erro ao processar pagamento. Verifique os dados e tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -191,16 +202,16 @@ export default function PaymentModal({ gift, amount, onClose }) {
         {step === 'form' && (
           <>
             <div className="pay-method-toggle">
-              <button className={`pay-method-btn ${method === 'pix' ? 'on' : 'off'}`} onClick={() => setMethod('pix')}>PIX</button>
-              <button className={`pay-method-btn ${method === 'card' ? 'on' : 'off'}`} onClick={() => setMethod('card')}>Cartão</button>
+              <button className={`pay-method-btn ${method === 'pix' ? 'on' : 'off'}`} onClick={() => { setMethod('pix'); setFormError('') }}>PIX</button>
+              <button className={`pay-method-btn ${method === 'card' ? 'on' : 'off'}`} onClick={() => { setMethod('card'); setFormError('') }}>Cartão</button>
             </div>
 
-            <input placeholder="Seu nome completo" value={name} onChange={e => setName(e.target.value)} />
+            <input placeholder="Seu nome completo" value={name} onChange={e => { setName(e.target.value); setFormError('') }} />
             <input
               placeholder="Seu e-mail"
               type="email"
               value={email}
-              onChange={e => { setEmail(e.target.value); setEmailError('') }}
+              onChange={e => { setEmail(e.target.value); setEmailError(''); setFormError('') }}
               style={emailError ? { borderColor: '#e05c5c' } : {}}
             />
             {emailError && <p style={{ color: '#e05c5c', fontSize: '.8rem', margin: '-8px 0 4px' }}>{emailError}</p>}
@@ -214,7 +225,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
             {method === 'card' && (
               <>
                 <input placeholder="Número do cartão" value={cardNumber}
-                  onChange={e => setCardNumber(formatCard(e.target.value))} inputMode="numeric" />
+                  onChange={e => { setCardNumber(formatCard(e.target.value)); setFormError('') }} inputMode="numeric" />
                 <div className="card-row">
                   <input placeholder="Validade MM/AA" value={expiry}
                     onChange={e => setExpiry(formatExpiry(e.target.value))} inputMode="numeric" />
@@ -240,6 +251,8 @@ export default function PaymentModal({ gift, amount, onClose }) {
                 </button>
               </>
             )}
+
+            {formError && <p style={{ color: '#e05c5c', fontSize: '.85rem', textAlign: 'center', marginTop: '.5rem' }}>{formError}</p>}
           </>
         )}
 
