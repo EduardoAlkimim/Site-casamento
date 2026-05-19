@@ -4,19 +4,17 @@ import { supabase } from '../lib/supabase.js'
 
 const router = Router()
 
-// POST /webhook — Mercado Pago notifica aqui
 router.post('/', async (req, res) => {
+  console.log('WEBHOOK RECEBIDO:', JSON.stringify(req.body))
   const { type, data } = req.body
 
-  // Só processa notificações de pagamento
   if (type !== 'payment') return res.sendStatus(200)
 
   try {
-    // Busca o pagamento no MP para confirmar
     const payment = await paymentClient.get({ id: data.id })
-    const status = payment.status // 'approved', 'rejected', etc.
+    const status = payment.status
+    console.log('STATUS DO PAGAMENTO:', status, 'ID:', data.id)
 
-    // Atualiza no banco
     await supabase
       .from('payments')
       .update({ status })
@@ -24,7 +22,7 @@ router.post('/', async (req, res) => {
 
     res.sendStatus(200)
   } catch (err) {
-    console.error(err)
+    console.error('ERRO WEBHOOK:', err)
     res.sendStatus(500)
   }
 })
