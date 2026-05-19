@@ -14,7 +14,9 @@ const limiter = rateLimit({
   message: { error: 'Muitas requisições, tente novamente mais tarde.' }
 })
 
-app.use(cors({ origin: process.env.FRONTEND_URL }))
+app.use(cors({
+  origin: process.env.FRONTEND_URL.split(',')
+}))
 app.use(express.json())
 app.use(limiter)
 
