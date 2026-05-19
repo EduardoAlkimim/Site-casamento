@@ -111,6 +111,20 @@ router.post('/create', async (req, res) => {
   }
 })
 
+router.get('/status/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('status')
+      .eq('mp_payment_id', req.params.id)
+      .single()
+    if (error) return res.status(404).json({ error: 'Não encontrado' })
+    res.json({ status: data.status })
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar status' })
+  }
+})
+
 router.get('/installments', async (req, res) => {
   const { amount, bin } = req.query
   if (!amount || !bin) return res.status(400).json({ error: 'amount e bin obrigatórios' })
