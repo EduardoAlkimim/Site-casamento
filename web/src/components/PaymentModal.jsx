@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import api from '../lib/api'
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 function formatCPF(v) {
   return v.replace(/\D/g, '').slice(0, 11)
     .replace(/(\d{3})(\d)/, '$1.$2')
@@ -24,6 +26,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
   const [loading, setLoading]     = useState(false)
   const [qrData, setQrData]       = useState(null)
   const [statusMsg, setStatusMsg] = useState('')
+  const [emailError, setEmailError] = useState('')
 
   const [name, setName]   = useState('')
   const [email, setEmail] = useState('')
@@ -46,6 +49,8 @@ export default function PaymentModal({ gift, amount, onClose }) {
 
   const handlePix = async () => {
     if (!name || !email) return alert('Preencha nome e e-mail')
+    if (!EMAIL_REGEX.test(email)) { setEmailError('Digite um e-mail válido'); return }
+    setEmailError('')
     setLoading(true)
     try {
       const { data } = await api.post('/payments/create', {
@@ -69,6 +74,8 @@ export default function PaymentModal({ gift, amount, onClose }) {
     if (!name || !email || !cardNumber || !expiry || !cvv || !cardName || !cpf) {
       return alert('Preencha todos os campos do cartão')
     }
+    if (!EMAIL_REGEX.test(email)) { setEmailError('Digite um e-mail válido'); return }
+    setEmailError('')
     setLoading(true)
     try {
       const { data } = await api.post('/payments/create', {
@@ -118,12 +125,19 @@ export default function PaymentModal({ gift, amount, onClose }) {
         {step === 'form' && (
           <>
             <div className="pay-method-toggle">
-              <button className={`pay-method-btn ${method === 'pix' ? 'on' : ''}`} onClick={() => setMethod('pix')}>PIX</button>
-              <button className={`pay-method-btn ${method === 'card' ? 'on' : ''}`} onClick={() => setMethod('card')}>Cartão</button>
+              <button className={`pay-method-btn ${method === 'pix' ? 'on' : 'off'}`} onClick={() => setMethod('pix')}>PIX</button>
+              <button className={`pay-method-btn ${method === 'card' ? 'on' : 'off'}`} onClick={() => setMethod('card')}>Cartão</button>
             </div>
 
             <input placeholder="Seu nome completo" value={name} onChange={e => setName(e.target.value)} />
-            <input placeholder="Seu e-mail" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+            <input
+              placeholder="Seu e-mail"
+              type="email"
+              value={email}
+              onChange={e => { setEmail(e.target.value); setEmailError('') }}
+              style={emailError ? { borderColor: '#e05c5c' } : {}}
+            />
+            {emailError && <p style={{ color: '#e05c5c', fontSize: '.8rem', margin: '-8px 0 4px' }}>{emailError}</p>}
 
             {method === 'pix' && (
               <button onClick={handlePix} disabled={loading}>
