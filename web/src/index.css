@@ -286,7 +286,7 @@ footer p { font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; c
 .pay-method-toggle { display: flex; gap: 0; margin: 1rem auto; border: 1px solid var(--rose-lt); border-radius: 50px; overflow: hidden; width: fit-content; background: white; }
 .pay-method-btn { padding: .5rem 1.6rem; background: transparent; border: none; font-family: 'Raleway', sans-serif; font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: var(--stone); cursor: pointer; transition: all .2s; }
 .pay-method-btn.on  { background: var(--rose); color: white; opacity: 1; }
-.pay-method-btn.off { background: transparent; color: var(--stone); opacity: 0.45; }
+.pay-method-btn.off { background: transparent; color: var(--rose); opacity: 1; }
 .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
 .install-select { width: 100%; padding: .7rem 1rem; border: 1px solid var(--rose-lt); border-radius: 8px; font-family: 'Raleway', sans-serif; font-size: .85rem; color: var(--ink); background: var(--cream); outline: none; margin-bottom: .8rem; }
 /* ── MOBILE FIX ── */
