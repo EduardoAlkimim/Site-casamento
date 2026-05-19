@@ -288,3 +288,56 @@ footer p { font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; c
 .pay-method-btn.on { background: var(--rose); color: white; }
 .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
 .install-select { width: 100%; padding: .7rem 1rem; border: 1px solid var(--rose-lt); border-radius: 8px; font-family: 'Raleway', sans-serif; font-size: .85rem; color: var(--ink); background: var(--cream); outline: none; margin-bottom: .8rem; }
+/* ── MOBILE FIX ── */
+@media (max-width: 768px) {
+
+  /* Nav — centralizado e menor */
+  #nav {
+    gap: 1rem;
+    padding: .8rem 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .nav-link {
+    font-size: .55rem;
+    letter-spacing: .12em;
+    white-space: nowrap;
+  }
+
+  /* Timeline — linha some, layout limpo */
+  .timeline::before {
+    display: none;
+  }
+  .tl-item {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+  .tl-photo-wrap {
+    flex-shrink: 0;
+    align-items: center;
+  }
+  .tl-dot {
+    display: none;
+  }
+  .tl-photo {
+    width: 52px;
+    height: 52px;
+    font-size: 1.2rem;
+  }
+  .tl-item > .tl-content:empty {
+    display: none;
+  }
+  .tl-content {
+    padding: 0;
+    text-align: left !important;
+  }
+  .tl-heading {
+    font-size: 1rem;
+  }
+  .tl-text {
+    font-size: .78rem;
+  }
+}
