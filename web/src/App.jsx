@@ -23,11 +23,11 @@ function useCountdown(target) {
 
 // ── Timeline data ───────────────────────────────────────────────────────
 const timeline = [
-  { year: '2020', tag: 'O começo',     emoji: '🌸', title: 'O dia em que tudo começou',       text: 'Foi numa tarde comum que nossos caminhos se cruzaram pela primeira vez.' },
-  { year: '2021', tag: 'A certeza',    emoji: '💫', title: 'Quando soubemos que éramos nós',  text: 'Com o tempo, cada momento juntos foi revelando uma verdade já escrita.' },
-  { year: '2022', tag: 'A aventura',   emoji: '✈️', title: 'Descobrindo o mundo lado a lado', text: 'Viagens, risadas, desafios superados juntos. Cada experiência foi um tijolo.' },
-  { year: '2024', tag: 'O pedido',     emoji: '💍', title: 'Ela disse sim',                    text: 'Com o coração na garganta, o pedido aconteceu. E o sim dela foi a resposta mais bonita.' },
-  { year: '2027', tag: 'O grande dia', emoji: '🕊️', title: 'Para sempre começa aqui',         text: 'No dia 21 de abril de 2027, vamos prometer um ao outro tudo o que já sentimos.' },
+  { year: '2023', tag: 'O começo',     emoji: '🌸', title: 'O dia em que tudo começou',       text: 'Crescemos na mesma escola, mas foi no dia 11 de dezembro de 2023 que eu finalmente tive coragem — e ela disse sim.' },
+  { year: '2024', tag: 'A superação',  emoji: '💫', title: 'Juntos somos mais fortes',        text: 'O primeiro ano juntos não foi só alegria — foi aprendizado, crescimento e a certeza de que somos mais fortes um ao lado do outro.' },
+  { year: '2025', tag: 'A aventura',   emoji: '✈️', title: 'Descobrindo o mundo lado a lado', text: 'Viagens, risadas e aventuras. Cada novo lugar vivido juntos virou uma memória que carregamos no coração.' },
+  { year: '2026', tag: 'O pedido',     emoji: '💍', title: 'Ela disse sim... de novo',        text: 'Dessa vez com anel, joelho no chão e o coração na garganta. Pedi pra ela me fazer o homem mais feliz do mundo — e ela disse sim.' },
+  { year: '2027', tag: 'O grande dia', emoji: '🕊️', title: 'Para sempre começa aqui',        text: 'No dia 21 de abril de 2027, vamos prometer um ao outro tudo o que já sentimos. E o resto da vida começa.' },
 ]
 
 // ── Galeria ─────────────────────────────────────────────────────────────
