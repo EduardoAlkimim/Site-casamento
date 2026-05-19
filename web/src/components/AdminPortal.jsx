@@ -25,7 +25,10 @@ export default function AdminPortal({ onClose }) {
   const fetchMessages = async () => {
     setLoadingMsgs(true)
     try {
-      const { data } = await api.get('/messages')
+      const token = import.meta.env.VITE_ADMIN_TOKEN
+      const { data } = await api.get('/messages', {
+        headers: { 'x-admin-token': token }
+      })
       setMessages(data)
     } catch {
       alert('Erro ao carregar mensagens.')
