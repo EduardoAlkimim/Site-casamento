@@ -5,6 +5,7 @@ import 'dotenv/config'
 import giftsRouter    from './routes/gifts.js'
 import paymentsRouter from './routes/payments.js'
 import webhookRouter  from './routes/webhook.js'
+import messagesRouter from './routes/messages.js'
 
 const app = express()
 
@@ -32,6 +33,7 @@ app.use('/gifts',    giftsRouter)
 app.use('/payments', paymentsRouter)
 app.use('/webhook',  webhookRouter)
 
+app.use('/messages', messagesRouter) 
 app.get('/health', (_, res) => res.json({ ok: true }))
 
 const PORT = process.env.PORT || 3001

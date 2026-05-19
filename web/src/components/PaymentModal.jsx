@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../lib/api'
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
 function formatCPF(v) {
   return v.replace(/\D/g, '').slice(0, 11)
     .replace(/(\d{3})(\d)/, '$1.$2')
@@ -21,22 +19,24 @@ function formatExpiry(v) {
 export default function PaymentModal({ gift, amount, onClose }) {
   const valor = gift?.value || amount
 
-  const [method, setMethod]       = useState('pix')
-  const [step, setStep]           = useState('form')
-  const [loading, setLoading]     = useState(false)
-  const [qrData, setQrData]       = useState(null)
-  const [statusMsg, setStatusMsg] = useState('')
-  const [emailError, setEmailError] = useState('')
+  const [method, setMethod]         = useState('pix')
+  const [step, setStep]             = useState('form')
+  const [loading, setLoading]       = useState(false)
+  const [qrData, setQrData]         = useState(null)
+  const [statusMsg, setStatusMsg]   = useState('')
+  const [lastPaymentId, setLastPaymentId] = useState(null)
+  const [msgStep, setMsgStep]       = useState('')
+  const [msgText, setMsgText]       = useState('')
 
   const [name, setName]   = useState('')
   const [email, setEmail] = useState('')
 
-  const [cardNumber, setCardNumber]         = useState('')
-  const [expiry, setExpiry]                 = useState('')
-  const [cvv, setCvv]                       = useState('')
-  const [cardName, setCardName]             = useState('')
-  const [cpf, setCpf]                       = useState('')
-  const [installments, setInstallments]     = useState(1)
+  const [cardNumber, setCardNumber]           = useState('')
+  const [expiry, setExpiry]                   = useState('')
+  const [cvv, setCvv]                         = useState('')
+  const [cardName, setCardName]               = useState('')
+  const [cpf, setCpf]                         = useState('')
+  const [installments, setInstallments]       = useState(1)
   const [installmentOpts, setInstallmentOpts] = useState([])
 
   useEffect(() => {
@@ -49,8 +49,6 @@ export default function PaymentModal({ gift, amount, onClose }) {
 
   const handlePix = async () => {
     if (!name || !email) return alert('Preencha nome e e-mail')
-    if (!EMAIL_REGEX.test(email)) { setEmailError('Digite um e-mail válido'); return }
-    setEmailError('')
     setLoading(true)
     try {
       const { data } = await api.post('/payments/create', {
@@ -62,6 +60,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
         payment_method: 'pix',
       })
       setQrData(data)
+      setLastPaymentId(data.payment_id)
       setStep('qr')
     } catch {
       alert('Erro ao gerar PIX. Tente novamente.')
@@ -74,8 +73,6 @@ export default function PaymentModal({ gift, amount, onClose }) {
     if (!name || !email || !cardNumber || !expiry || !cvv || !cardName || !cpf) {
       return alert('Preencha todos os campos do cartão')
     }
-    if (!EMAIL_REGEX.test(email)) { setEmailError('Digite um e-mail válido'); return }
-    setEmailError('')
     setLoading(true)
     try {
       const { data } = await api.post('/payments/create', {
@@ -92,6 +89,8 @@ export default function PaymentModal({ gift, amount, onClose }) {
         installments,
         payer_cpf:      cpf,
       })
+
+      setLastPaymentId(data.payment_id)
 
       if (data.status === 'approved') {
         setStatusMsg('Pagamento aprovado! Obrigado pelo presente 💕')
@@ -111,6 +110,51 @@ export default function PaymentModal({ gift, amount, onClose }) {
     }
   }
 
+  const handleSendMessage = async () => {
+    if (!msgText.trim()) return alert('Escreva uma mensagem!')
+    try {
+      await api.post('/messages', {
+        payment_id:  lastPaymentId,
+        sender_name: name,
+        message:     msgText,
+        gift_name:   gift?.name || 'Contribuição livre',
+        amount:      valor,
+      })
+      setMsgStep('sent')
+    } catch {
+      alert('Erro ao enviar mensagem. Tente novamente.')
+    }
+  }
+
+  const MsgBlock = () => (
+    <>
+      {msgStep === '' && (
+        <button onClick={() => setMsgStep('form')} style={{ marginTop:'1rem', width:'100%', padding:'.75rem', background:'var(--rose)', color:'#fff', border:'none', borderRadius:'8px', fontFamily:'inherit', fontSize:'.7rem', letterSpacing:'.16em', textTransform:'uppercase', cursor:'pointer' }}>
+          💌 Deixar uma mensagem aos noivos
+        </button>
+      )}
+      {msgStep === 'form' && (
+        <div style={{ marginTop:'1rem' }}>
+          <textarea
+            placeholder="Escreva sua mensagem com carinho... 💕"
+            value={msgText}
+            onChange={e => setMsgText(e.target.value)}
+            rows={4}
+            style={{ width:'100%', padding:'.75rem', borderRadius:'8px', border:'1px solid #f2dede', fontFamily:'inherit', fontSize:'.9rem', resize:'vertical', outline:'none', color:'#1a1410' }}
+          />
+          <button onClick={handleSendMessage} style={{ marginTop:'.5rem', width:'100%', padding:'.75rem', background:'var(--rose)', color:'#fff', border:'none', borderRadius:'8px', fontFamily:'inherit', fontSize:'.7rem', letterSpacing:'.16em', textTransform:'uppercase', cursor:'pointer' }}>
+            Enviar mensagem 💌
+          </button>
+        </div>
+      )}
+      {msgStep === 'sent' && (
+        <p style={{ marginTop:'1rem', color:'var(--rose)', fontSize:'.85rem', textAlign:'center' }}>
+          💌 Mensagem enviada! Obrigado pelo carinho.
+        </p>
+      )}
+    </>
+  )
+
   const valorFmt = Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
 
   return (
@@ -125,19 +169,12 @@ export default function PaymentModal({ gift, amount, onClose }) {
         {step === 'form' && (
           <>
             <div className="pay-method-toggle">
-              <button className={`pay-method-btn ${method === 'pix' ? 'on' : 'off'}`} onClick={() => setMethod('pix')}>PIX</button>
-              <button className={`pay-method-btn ${method === 'card' ? 'on' : 'off'}`} onClick={() => setMethod('card')}>Cartão</button>
+              <button className={`pay-method-btn ${method === 'pix' ? 'on' : ''}`} onClick={() => setMethod('pix')}>PIX</button>
+              <button className={`pay-method-btn ${method === 'card' ? 'on' : ''}`} onClick={() => setMethod('card')}>Cartão</button>
             </div>
 
             <input placeholder="Seu nome completo" value={name} onChange={e => setName(e.target.value)} />
-            <input
-              placeholder="Seu e-mail"
-              type="email"
-              value={email}
-              onChange={e => { setEmail(e.target.value); setEmailError('') }}
-              style={emailError ? { borderColor: '#e05c5c' } : {}}
-            />
-            {emailError && <p style={{ color: '#e05c5c', fontSize: '.8rem', margin: '-8px 0 4px' }}>{emailError}</p>}
+            <input placeholder="Seu e-mail" type="email" value={email} onChange={e => setEmail(e.target.value)} />
 
             {method === 'pix' && (
               <button onClick={handlePix} disabled={loading}>
@@ -190,6 +227,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
             <p style={{ fontSize: '.75rem', marginTop: '1rem', color: '#7a6e68' }}>
               Após pagar, o presente é confirmado automaticamente 💕
             </p>
+            <MsgBlock />
           </>
         )}
 
@@ -198,7 +236,10 @@ export default function PaymentModal({ gift, amount, onClose }) {
             <div className="modal-icon">🎉</div>
             <h3>Tudo certo!</h3>
             <p>{statusMsg}</p>
-            <button onClick={onClose} style={{ marginTop: '1rem' }}>Fechar</button>
+            <MsgBlock />
+            <button onClick={onClose} style={{ marginTop:'1rem', background:'none', border:'1px solid #f2dede', borderRadius:'8px', padding:'.6rem 1.2rem', cursor:'pointer', color:'#7a6e68', fontSize:'.75rem' }}>
+              Fechar
+            </button>
           </>
         )}
 
