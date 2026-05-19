@@ -15,12 +15,6 @@ const limiter = rateLimit({
   message: { error: 'Muitas requisições, tente novamente mais tarde.' }
 })
 
-const statusLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 500,
-  message: { error: 'Muitas requisições, tente novamente mais tarde.' }
-})
-
 const allowedOrigins = process.env.FRONTEND_URL.split(',')
 
 app.use(cors({
@@ -35,11 +29,10 @@ app.use(cors({
 app.use(express.json())
 app.use(limiter)
 
-app.use('/gifts',            giftsRouter)
-app.use('/payments/status', statusLimiter)
-app.use('/payments',        paymentsRouter)
-app.use('/webhook',         webhookRouter)
-app.use('/messages',        messagesRouter)
+app.use('/gifts',    giftsRouter)
+app.use('/payments', paymentsRouter)
+app.use('/webhook',  webhookRouter)
+app.use('/messages', messagesRouter)
 app.get('/health', (_, res) => res.json({ ok: true }))
 
 const PORT = process.env.PORT || 3001
