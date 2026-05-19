@@ -25,7 +25,7 @@ export default function AdminPortal({ onClose }) {
   const fetchMessages = async () => {
     setLoadingMsgs(true)
     try {
-      const token = import.meta.env.VITE_ADMIN_TOKEN
+      const token = sessionStorage.getItem('admin_token')
       const { data } = await api.get('/messages', {
         headers: { 'x-admin-token': token }
       })
