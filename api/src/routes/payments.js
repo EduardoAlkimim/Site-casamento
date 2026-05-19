@@ -81,7 +81,7 @@ router.post('/create', async (req, res) => {
 
     const payment = await paymentClient.create({ body: paymentBody })
 
-    await supabase.from('payments').insert({
+    const { error: insertError } = await supabase.from('payments').insert({
       gift_id:        gift_id || null,
       payer_name,
       amount,
@@ -90,6 +90,8 @@ router.post('/create', async (req, res) => {
       mp_payment_id:  String(payment.id),
       payment_method: payment_method === 'card' ? 'card' : 'pix',
     })
+
+    if (insertError) console.error('Erro ao salvar pagamento:', insertError)
 
     if (payment_method === 'card') {
       return res.json({
