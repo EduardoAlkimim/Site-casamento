@@ -14,8 +14,16 @@ const limiter = rateLimit({
   message: { error: 'Muitas requisições, tente novamente mais tarde.' }
 })
 
+const allowedOrigins = process.env.FRONTEND_URL.split(',')
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL.split(',')
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, origin)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  }
 }))
 app.use(express.json())
 app.use(limiter)
