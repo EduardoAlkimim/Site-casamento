@@ -18,6 +18,36 @@ function formatExpiry(v) {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// Tokeniza o cartão DIRETO NO BROWSER usando a PUBLIC_KEY
+// Nunca os dados brutos do cartão vão para o seu servidor
+async function tokenizeCard({ cardNumber, expiry, cvv, cardName, cpf }) {
+  const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY
+  const [expMonth, expYear] = expiry.split('/')
+
+  const res = await fetch('https://api.mercadopago.com/v1/card_tokens', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${publicKey}`,
+    },
+    body: JSON.stringify({
+      card_number: cardNumber.replace(/\s/g, ''),
+      cardholder: {
+        name: cardName,
+        identification: {
+          type: 'CPF',
+          number: cpf.replace(/\D/g, ''),
+        },
+      },
+      expiration_month: Number(expMonth),
+      expiration_year: Number(`20${expYear}`),
+      security_code: cvv,
+    }),
+  })
+
+  return res.json()
+}
+
 function MsgBlock({ name, valor, gift }) {
   const [msgStep, setMsgStep] = useState('')
   const [msgText, setMsgText] = useState('')
@@ -27,9 +57,9 @@ function MsgBlock({ name, valor, gift }) {
     try {
       await api.post('/messages', {
         sender_name: name,
-        message:     msgText,
-        gift_name:   gift?.name || 'Contribuição livre',
-        amount:      valor,
+        message: msgText,
+        gift_name: gift?.name || 'Contribuição livre',
+        amount: valor,
       })
       setMsgStep('sent')
     } catch {
@@ -38,34 +68,34 @@ function MsgBlock({ name, valor, gift }) {
   }
 
   if (msgStep === 'sent') return (
-    <p style={{ marginTop:'1rem', color:'var(--rose)', fontSize:'.85rem', textAlign:'center' }}>
+    <p style={{ marginTop: '1rem', color: 'var(--rose)', fontSize: '.85rem', textAlign: 'center' }}>
       💌 Mensagem enviada! Obrigado pelo carinho.
     </p>
   )
 
   if (msgStep === 'error') return (
-    <p style={{ marginTop:'1rem', color:'#e05c5c', fontSize:'.85rem', textAlign:'center' }}>
+    <p style={{ marginTop: '1rem', color: '#e05c5c', fontSize: '.85rem', textAlign: 'center' }}>
       Erro ao enviar. Tente novamente.
     </p>
   )
 
   if (msgStep === 'form') return (
-    <div style={{ marginTop:'1rem' }}>
+    <div style={{ marginTop: '1rem' }}>
       <textarea
         placeholder="Escreva sua mensagem com carinho... 💕"
         value={msgText}
         onChange={e => setMsgText(e.target.value)}
         rows={4}
-        style={{ width:'100%', padding:'.75rem', borderRadius:'8px', border:'1px solid #f2dede', fontFamily:'inherit', fontSize:'.9rem', resize:'vertical', outline:'none', color:'#1a1410', boxSizing:'border-box' }}
+        style={{ width: '100%', padding: '.75rem', borderRadius: '8px', border: '1px solid #f2dede', fontFamily: 'inherit', fontSize: '.9rem', resize: 'vertical', outline: 'none', color: '#1a1410', boxSizing: 'border-box' }}
       />
-      <button onClick={handleSend} style={{ marginTop:'.5rem', width:'100%', padding:'.75rem', background:'var(--rose)', color:'#fff', border:'none', borderRadius:'8px', fontFamily:'inherit', fontSize:'.7rem', letterSpacing:'.16em', textTransform:'uppercase', cursor:'pointer' }}>
+      <button onClick={handleSend} style={{ marginTop: '.5rem', width: '100%', padding: '.75rem', background: 'var(--rose)', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'inherit', fontSize: '.7rem', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer' }}>
         Enviar mensagem 💌
       </button>
     </div>
   )
 
   return (
-    <button onClick={() => setMsgStep('form')} style={{ marginTop:'1rem', width:'100%', padding:'.75rem', background:'var(--rose)', color:'#fff', border:'none', borderRadius:'8px', fontFamily:'inherit', fontSize:'.7rem', letterSpacing:'.16em', textTransform:'uppercase', cursor:'pointer' }}>
+    <button onClick={() => setMsgStep('form')} style={{ marginTop: '1rem', width: '100%', padding: '.75rem', background: 'var(--rose)', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'inherit', fontSize: '.7rem', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer' }}>
       💌 Deixar uma mensagem aos noivos
     </button>
   )
@@ -74,25 +104,25 @@ function MsgBlock({ name, valor, gift }) {
 export default function PaymentModal({ gift, amount, onClose }) {
   const valor = gift?.value || amount
 
-  const [method, setMethod]           = useState('pix')
-  const [step, setStep]               = useState('form')
-  const [loading, setLoading]         = useState(false)
-  const [qrData, setQrData]           = useState(null)
-  const [statusMsg, setStatusMsg]     = useState('')
+  const [method, setMethod] = useState('pix')
+  const [step, setStep] = useState('form')
+  const [loading, setLoading] = useState(false)
+  const [qrData, setQrData] = useState(null)
+  const [statusMsg, setStatusMsg] = useState('')
   const [pixApproved, setPixApproved] = useState(false)
-  const [emailError, setEmailError]   = useState('')
-  const [formError, setFormError]     = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [formError, setFormError] = useState('')
   const pollingRef = useRef(null)
 
-  const [name, setName]   = useState('')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
 
-  const [cardNumber, setCardNumber]           = useState('')
-  const [expiry, setExpiry]                   = useState('')
-  const [cvv, setCvv]                         = useState('')
-  const [cardName, setCardName]               = useState('')
-  const [cpf, setCpf]                         = useState('')
-  const [installments, setInstallments]       = useState(1)
+  const [cardNumber, setCardNumber] = useState('')
+  const [expiry, setExpiry] = useState('')
+  const [cvv, setCvv] = useState('')
+  const [cardName, setCardName] = useState('')
+  const [cpf, setCpf] = useState('')
+  const [installments, setInstallments] = useState(1)
   const [installmentOpts, setInstallmentOpts] = useState([])
 
   useEffect(() => {
@@ -129,11 +159,11 @@ export default function PaymentModal({ gift, amount, onClose }) {
     setLoading(true)
     try {
       const { data } = await api.post('/payments/create', {
-        gift_id:        gift?.id || null,
-        payer_name:     name,
-        payer_email:    email,
-        amount:         valor,
-        type:           gift ? 'gift' : 'free',
+        gift_id: gift?.id || null,
+        payer_name: name,
+        payer_email: email,
+        amount: valor,
+        type: gift ? 'gift' : 'free',
         payment_method: 'pix',
       })
       setQrData(data)
@@ -154,20 +184,29 @@ export default function PaymentModal({ gift, amount, onClose }) {
     if (!EMAIL_REGEX.test(email)) { setEmailError('Digite um e-mail válido'); return }
     setEmailError('')
     setLoading(true)
+
     try {
+      // 1. Tokeniza o cartão direto no browser (nunca passa pelo seu servidor)
+      const tokenData = await tokenizeCard({ cardNumber, expiry, cvv, cardName, cpf })
+
+      if (!tokenData.id) {
+        const detail = tokenData?.cause?.[0]?.description || 'Dados do cartão inválidos. Verifique e tente novamente.'
+        setFormError(detail)
+        setLoading(false)
+        return
+      }
+
+      // 2. Envia apenas o token para o seu backend
       const { data } = await api.post('/payments/create', {
-        gift_id:        gift?.id || null,
-        payer_name:     name,
-        payer_email:    email,
-        amount:         valor,
-        type:           gift ? 'gift' : 'free',
+        gift_id: gift?.id || null,
+        payer_name: name,
+        payer_email: email,
+        amount: valor,
+        type: gift ? 'gift' : 'free',
         payment_method: 'card',
-        card_number:    cardNumber.replace(/\s/g, ''),
-        card_expiry:    expiry,
-        card_cvv:       cvv,
-        card_name:      cardName,
+        card_token: tokenData.id,
         installments,
-        payer_cpf:      cpf,
+        payer_cpf: cpf,
       })
 
       if (data.status === 'approved') {
@@ -177,7 +216,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
         setStatusMsg('Pagamento em análise. Você receberá uma confirmação por e-mail.')
         setStep('success')
       } else {
-        setStatusMsg('Pagamento não aprovado. Verifique os dados e tente novamente.')
+        setStatusMsg(`Pagamento não aprovado (${data.status_detail || 'verifique os dados'}).`)
         setStep('error')
       }
     } catch (err) {
@@ -287,7 +326,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
             <h3>Tudo certo!</h3>
             <p>{statusMsg}</p>
             <MsgBlock name={name} valor={valor} gift={gift} />
-            <button onClick={onClose} style={{ marginTop:'1rem', background:'none', border:'1px solid #f2dede', borderRadius:'8px', padding:'.6rem 1.2rem', cursor:'pointer', color:'#7a6e68', fontSize:'.75rem' }}>
+            <button onClick={onClose} style={{ marginTop: '1rem', background: 'none', border: '1px solid #f2dede', borderRadius: '8px', padding: '.6rem 1.2rem', cursor: 'pointer', color: '#7a6e68', fontSize: '.75rem' }}>
               Fechar
             </button>
           </>
