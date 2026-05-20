@@ -4,11 +4,28 @@ import { supabase } from '../lib/supabase.js'
 
 const router = Router()
 
+// Busca o payment_method_id pelo BIN do cartão (ex: "visa", "master")
+async function getPaymentMethodId(bin) {
+  try {
+    const url = `https://api.mercadopago.com/v1/payment_methods/search?bin=${bin}&site_id=MLB`
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` }
+    })
+    const data = await res.json()
+    // Pega o primeiro método de crédito disponível
+    const method = data?.results?.find(m => m.payment_type_id === 'credit_card')
+      || data?.results?.[0]
+    return method?.id || 'visa'
+  } catch {
+    return 'visa' // fallback
+  }
+}
+
 router.post('/create', async (req, res) => {
   const {
     gift_id, payer_name, payer_email, amount, type,
     payment_method, installments, payer_cpf,
-    card_token, // token gerado no browser - nunca dados brutos do cartão
+    card_token, card_bin, // card_bin = primeiros 6 dígitos, enviado pelo frontend
   } = req.body
 
   if (!payer_name || !payer_email || !amount) {
@@ -19,10 +36,13 @@ router.post('/create', async (req, res) => {
     let paymentBody
 
     if (payment_method === 'card' && card_token) {
+      const paymentMethodId = card_bin ? await getPaymentMethodId(card_bin) : 'visa'
+
       paymentBody = {
         transaction_amount: Number(amount),
         description: gift_id ? 'Presente de casamento' : 'Contribuição livre',
         token: card_token,
+        payment_method_id: paymentMethodId,
         installments: Number(installments) || 1,
         payer: {
           email: payer_email,

@@ -18,8 +18,6 @@ function formatExpiry(v) {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// Tokeniza o cartão DIRETO NO BROWSER usando a PUBLIC_KEY
-// Nunca os dados brutos do cartão vão para o seu servidor
 async function tokenizeCard({ cardNumber, expiry, cvv, cardName, cpf }) {
   const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY
   const [expMonth, expYear] = expiry.split('/')
@@ -34,17 +32,13 @@ async function tokenizeCard({ cardNumber, expiry, cvv, cardName, cpf }) {
       card_number: cardNumber.replace(/\s/g, ''),
       cardholder: {
         name: cardName,
-        identification: {
-          type: 'CPF',
-          number: cpf.replace(/\D/g, ''),
-        },
+        identification: { type: 'CPF', number: cpf.replace(/\D/g, '') },
       },
       expiration_month: Number(expMonth),
       expiration_year: Number(`20${expYear}`),
       security_code: cvv,
     }),
   })
-
   return res.json()
 }
 
@@ -72,13 +66,11 @@ function MsgBlock({ name, valor, gift }) {
       💌 Mensagem enviada! Obrigado pelo carinho.
     </p>
   )
-
   if (msgStep === 'error') return (
     <p style={{ marginTop: '1rem', color: '#e05c5c', fontSize: '.85rem', textAlign: 'center' }}>
       Erro ao enviar. Tente novamente.
     </p>
   )
-
   if (msgStep === 'form') return (
     <div style={{ marginTop: '1rem' }}>
       <textarea
@@ -93,7 +85,6 @@ function MsgBlock({ name, valor, gift }) {
       </button>
     </div>
   )
-
   return (
     <button onClick={() => setMsgStep('form')} style={{ marginTop: '1rem', width: '100%', padding: '.75rem', background: 'var(--rose)', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: 'inherit', fontSize: '.7rem', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer' }}>
       💌 Deixar uma mensagem aos noivos
@@ -116,7 +107,6 @@ export default function PaymentModal({ gift, amount, onClose }) {
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-
   const [cardNumber, setCardNumber] = useState('')
   const [expiry, setExpiry] = useState('')
   const [cvv, setCvv] = useState('')
@@ -146,9 +136,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
     }, 4000)
   }
 
-  useEffect(() => {
-    return () => clearInterval(pollingRef.current)
-  }, [])
+  useEffect(() => () => clearInterval(pollingRef.current), [])
 
   const handlePix = async () => {
     setFormError('')
@@ -186,17 +174,18 @@ export default function PaymentModal({ gift, amount, onClose }) {
     setLoading(true)
 
     try {
-      // 1. Tokeniza o cartão direto no browser (nunca passa pelo seu servidor)
+      // Tokeniza no browser com a PUBLIC_KEY
       const tokenData = await tokenizeCard({ cardNumber, expiry, cvv, cardName, cpf })
 
       if (!tokenData.id) {
-        const detail = tokenData?.cause?.[0]?.description || 'Dados do cartão inválidos. Verifique e tente novamente.'
+        const detail = tokenData?.cause?.[0]?.description || 'Dados do cartão inválidos.'
         setFormError(detail)
         setLoading(false)
         return
       }
 
-      // 2. Envia apenas o token para o seu backend
+      const bin = cardNumber.replace(/\s/g, '').slice(0, 6)
+
       const { data } = await api.post('/payments/create', {
         gift_id: gift?.id || null,
         payer_name: name,
@@ -205,6 +194,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
         type: gift ? 'gift' : 'free',
         payment_method: 'card',
         card_token: tokenData.id,
+        card_bin: bin,         // envia o BIN para o backend identificar a bandeira
         installments,
         payer_cpf: cpf,
       })
