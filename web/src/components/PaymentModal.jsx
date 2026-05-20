@@ -21,7 +21,6 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 async function tokenizeCard({ cardNumber, expiry, cvv, cardName, cpf }) {
   const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY
   const [expMonth, expYear] = expiry.split('/')
-
   const res = await fetch('https://api.mercadopago.com/v1/card_tokens', {
     method: 'POST',
     headers: {
@@ -112,16 +111,17 @@ export default function PaymentModal({ gift, amount, onClose }) {
   const [cvv, setCvv] = useState('')
   const [cardName, setCardName] = useState('')
   const [cpf, setCpf] = useState('')
+  const [cardType, setCardType] = useState('credit')
   const [installments, setInstallments] = useState(1)
   const [installmentOpts, setInstallmentOpts] = useState([])
 
   useEffect(() => {
     const bin = cardNumber.replace(/\s/g, '').slice(0, 6)
-    if (bin.length < 6 || !valor) { setInstallmentOpts([]); return }
+    if (bin.length < 6 || !valor || cardType === 'debit') { setInstallmentOpts([]); return }
     api.get(`/payments/installments?amount=${valor}&bin=${bin}`)
       .then(r => setInstallmentOpts(r.data))
       .catch(() => setInstallmentOpts([]))
-  }, [cardNumber, valor])
+  }, [cardNumber, valor, cardType])
 
   const startPolling = (paymentId) => {
     clearInterval(pollingRef.current)
@@ -174,7 +174,6 @@ export default function PaymentModal({ gift, amount, onClose }) {
     setLoading(true)
 
     try {
-      // Tokeniza no browser com a PUBLIC_KEY
       const tokenData = await tokenizeCard({ cardNumber, expiry, cvv, cardName, cpf })
 
       if (!tokenData.id) {
@@ -194,8 +193,9 @@ export default function PaymentModal({ gift, amount, onClose }) {
         type: gift ? 'gift' : 'free',
         payment_method: 'card',
         card_token: tokenData.id,
-        card_bin: bin,         // envia o BIN para o backend identificar a bandeira
-        installments,
+        card_bin: bin,
+        card_type: cardType,
+        installments: cardType === 'debit' ? 1 : installments,
         payer_cpf: cpf,
       })
 
@@ -230,6 +230,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
 
         {step === 'form' && (
           <>
+            {/* PIX vs Cartão */}
             <div className="pay-method-toggle">
               <button className={`pay-method-btn ${method === 'pix' ? 'on' : 'off'}`} onClick={() => { setMethod('pix'); setFormError('') }}>PIX</button>
               <button className={`pay-method-btn ${method === 'card' ? 'on' : 'off'}`} onClick={() => { setMethod('card'); setFormError('') }}>Cartão</button>
@@ -253,6 +254,12 @@ export default function PaymentModal({ gift, amount, onClose }) {
 
             {method === 'card' && (
               <>
+                {/* Crédito vs Débito */}
+                <div className="pay-method-toggle" style={{ marginBottom: '.5rem' }}>
+                  <button className={`pay-method-btn ${cardType === 'credit' ? 'on' : 'off'}`} onClick={() => { setCardType('credit'); setInstallments(1); setFormError('') }}>Crédito</button>
+                  <button className={`pay-method-btn ${cardType === 'debit' ? 'on' : 'off'}`} onClick={() => { setCardType('debit'); setInstallments(1); setFormError('') }}>Débito</button>
+                </div>
+
                 <input placeholder="Número do cartão" value={cardNumber}
                   onChange={e => { setCardNumber(formatCard(e.target.value)); setFormError('') }} inputMode="numeric" />
                 <div className="card-row">
@@ -265,7 +272,8 @@ export default function PaymentModal({ gift, amount, onClose }) {
                   onChange={e => setCardName(e.target.value.toUpperCase())} />
                 <input placeholder="CPF do titular" value={cpf}
                   onChange={e => setCpf(formatCPF(e.target.value))} inputMode="numeric" />
-                {installmentOpts.length > 0 && (
+
+                {cardType === 'credit' && installmentOpts.length > 0 && (
                   <select className="install-select" value={installments}
                     onChange={e => setInstallments(Number(e.target.value))}>
                     {installmentOpts.map(opt => (
@@ -275,6 +283,7 @@ export default function PaymentModal({ gift, amount, onClose }) {
                     ))}
                   </select>
                 )}
+
                 <button onClick={handleCard} disabled={loading}>
                   {loading ? 'Processando...' : `Pagar R$ ${valorFmt}`}
                 </button>
